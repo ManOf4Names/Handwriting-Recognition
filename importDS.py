@@ -6,6 +6,12 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import ImageDataGenerator 
 
+#checks if the directory for our dataset exists,
+if not os.path.exists("DS"):
+    os.makedirs("DS")
+
+
+
 
 image_data_generator = ImageDataGenerator() 
 
