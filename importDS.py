@@ -6,34 +6,42 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import ImageDataGenerator 
 
+
+from som import SOM
+
 #checks if the directory for our dataset exists,
-if not os.path.exists("DS"):
-    os.makedirs("DS")
+#if not os.path.exists("DS"):
+#    os.makedirs("DS")
 
 
 
 
-image_data_generator = ImageDataGenerator() 
-labels = ["TrainLowerA", "TrainLowerB", "TrainLowerC", "TrainLowerD", "TrainLowerE",
-          "TrainLowerF", "TrainLowerG", "TrainLowerH", "TrainLowerI", "TrainLowerJ",
-          "TrainLowerK", "TrainLowerL", "TrainLowerM", "TrainLowerN", "TrainLowerO",
-          "TrainLowerP", "TrainLowerQ", "TrainLowerR", "TrainLowerS", "TrainLowerT",
-          "TrainLowerU", "TrainLowerV", "TrainLowerW", "TrainLowerX", "TrainLowerY",
-          "TrainLowerZ", "TrainNumber0", "TrainNumber1", "TrainNumber2", "TrainNumber3",
-          "TrainNumber4", "TrainNumber5", "TrainNumber6", "TrainNumber7", "TrainNumber8",
-          "TrainNumber9", "TrainUpperA", "TrainUpperB", "TrainUpperC", "TrainUpperD",
-          "TrainUpperE", "TrainUpperF", "TrainUpperG", "TrainUpperH", "TrainUpperI",
-          "TrainUpperJ", "TrainUpperK", "TrainUpperL", "TrainUpperM", "TrainUpperN",
-          "TrainUpperO", "TrainUpperP", "TrainUpperQ", "TrainUpperR", "TrainUpperS",
-          "TrainUpperT", "TrainUpperU", "TrainUpperV", "TrainUpperW", "TrainUpperX",
-          "TrainUpperY", "TrainUpperZ"]
+train_ds = tf.keras.utils.image_dataset_from_directory(
+  "../CharacterSetsNew/CharacterSets/Training",
+  labels='inferred',
+  validation_split=0.2,
+  subset="training",
+  seed=123,
+  image_size=(128, 128),
+  batch_size=32)
 
-image = tf.keras.preprocessing.image.DirectoryIterator(
-    "./CharacterSets/Training", image_data_generator, target_size=(50, 50),
-    color_mode='grayscale', classes=labels, class_mode='categorical',
-    batch_size=100, shuffle=True, seed=None, data_format=None, save_to_dir="./DS",
-    save_prefix='', save_format='png', follow_links=False,
-    subset="training", interpolation='nearest', dtype=None
-)
 
-image.next() # This line will trigger the execution of Iterator. 
+class_names = train_ds.class_names
+print(class_names)
+
+
+
+
+#THIS CODE IS JUST FOR VISUALIZATION, IT CAN BE SAFELY REMOVED
+import matplotlib.pyplot as plt
+
+
+plt.figure(figsize=(10, 10))
+for images, labels in train_ds.take(1):
+  for i in range(9):
+    ax = plt.subplot(3, 3, i + 1)
+    plt.imshow(images[i].numpy().astype("uint8"))
+    plt.title(class_names[labels[i]])
+    plt.axis("off")
+plt.show()
+#END OF VISUALIZATION CODE
