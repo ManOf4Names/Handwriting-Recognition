@@ -13,26 +13,28 @@ from som import SOM
 #if not os.path.exists("DS"):
 #    os.makedirs("DS")
 
-
-
+input_dir = "./CharacterSets/Training"
+val_split = 0.2
+img_height = img_width = 50
+batch_size = 100
 
 train_ds = tf.keras.utils.image_dataset_from_directory(
-  "../CharacterSetsNew/CharacterSets/Training",
+  input_dir,
   labels='inferred',
-  validation_split=0.2,
+  validation_split=val_split,
   subset="training",
   seed=123,
-  image_size=(128, 128),
-  batch_size=32) #WTF does batch size affect????
+  image_size=(img_height, img_width),
+  batch_size=batch_size) #WTF does batch size affect????
 
 val_ds = tf.keras.utils.image_dataset_from_directory(
-  "../CharacterSetsNew/CharacterSets/Training",
+  input_dir,
   labels='inferred',
-  validation_split=0.2,
+  validation_split=val_split,
   subset="validation",
   seed=123,
-  image_size=(128, 128),
-  batch_size=32)
+  image_size=(img_height, img_width),
+  batch_size=batch_size)
 
 
 class_names = train_ds.class_names
