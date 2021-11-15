@@ -1,7 +1,4 @@
 CharacterSets/
 CharacterSets.zip
-<<<<<<< HEAD
 DS/
-=======
-DS/
->>>>>>> 564882a6e45e4a063f7f1147c09983a4c082588f
+__pycache__/

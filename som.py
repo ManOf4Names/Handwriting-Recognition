@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+from tensorflow import keras
 
 
 class SOM(object):
@@ -17,10 +18,10 @@ class SOM(object):
         with self._graph.as_default():
 
             #Initializing variables and placeholders
-            self._weights = tf.Variable(tf.random_normal([x*y, input_dim]))
+            self._weights = tf.Variable(tf.random.normal([x*y, input_dim]))
             self._locations = self._generate_index_matrix(x, y)
-            self._input = tf.placeholder("float", [input_dim])
-            self._iter_input = tf.placeholder("float")
+            self._input = keras.Input(dtype="float", shape=[input_dim,])
+            self._iter_input = keras.Input(dtype="float", shape=[None,])
 
             #Calculating BMU
             input_matix = tf.stack([self._input for i in range(x*y)])
@@ -36,7 +37,7 @@ class SOM(object):
 
             #Calculate learning rate and radius
             decay_function = tf.subtract(
-                1.0, tf.div(self._iter_input, self._num_iter))
+                1.0, tf.math.divide(self._iter_input, self._num_iter))
             _current_learning_rate = tf.multiply(
                 self._learning_rate, decay_function)
             _current_radius = tf.multiply(self._radius, decay_function)
@@ -46,7 +47,7 @@ class SOM(object):
             bmu_distance = tf.reduce_sum(
                 tf.pow(tf.subtract(self._locations, bmu_matrix), 2), 1)
             neighbourhood_func = tf.exp(tf.negative(
-                tf.div(tf.cast(bmu_distance, "float32"), tf.pow(_current_radius, 2))))
+                tf.math.divide(tf.cast(bmu_distance, "float32"), tf.pow(_current_radius, 2))))
             learning_rate_matrix = tf.multiply(
                 _current_learning_rate, neighbourhood_func)
 
