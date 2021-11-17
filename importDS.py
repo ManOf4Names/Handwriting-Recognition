@@ -16,12 +16,13 @@ from som import SOM
 input_dir = "./CharacterSets/Training"
 val_split = 0.2
 img_height = img_width = 50
-batch_size = 100
+batch_size = 128 # Garrett's laptop runs out of memory at 3179 batches at 100 size 
 
 train_ds = tf.keras.utils.image_dataset_from_directory(
   input_dir,
   labels='inferred',
   validation_split=val_split,
+  color_mode="grayscale",
   subset="training",
   seed=123,
   image_size=(img_height, img_width),
@@ -31,14 +32,24 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
   input_dir,
   labels='inferred',
   validation_split=val_split,
+  color_mode="grayscale",
   subset="validation",
   seed=123,
   image_size=(img_height, img_width),
   batch_size=batch_size)
 
+#prints the class names (so we know our dataset is being read)
+'''class_names = train_ds.class_names
+print(class_names)'''
 
-class_names = train_ds.class_names
-print(class_names)
+'''Shuffles the training dataset for each epoch
+#currently
+image_count = len(list(train_ds))
+print(image_count)
+train_ds = train_ds.shuffle(image_count, reshuffle_each_iteration=True)'''
+
+
+
 
 
 
