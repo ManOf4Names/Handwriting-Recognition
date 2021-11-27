@@ -1,97 +1,115 @@
-import tensorflow as tf
+import matplotlib.pylab as plt
 import numpy as np
-from tensorflow import keras
+import gzip
+from sklearn.model_selection import trin_test_split
+from sklearn.preprocessing import scale
+import cv2
 
+class Kohonen:
+    # initialization
+    def __init__(self, m, n, model=None, net_dim=(30, 30), learning_rate=0.5, iterations=100, n_classes=10):
+        if model is None:
+            model = np.random.random((net_dim[0], net_dim[1], m))*0.01
+        self.model = model
+        self.net_dim = net_dim
+        self.learning_rate = learning_rate
+        self.iterations = iterations
+        self.init_radius = np.average(np.array(net_dim)) / 2
+        self.m = m
+        self.n = n
+        self.n_classes = n_classes
+        self.time_constant = iterations / np.log(self.init_radius)
+        self.labels = np.zeros(
+            (self.model.shape[0], self.model.shape[1], self.n_classes))
 
-class SOM(object):
-    def __init__(self, x, y, input_dim, learning_rate, radius, num_iter=111):
+    # competition
+    def fittest_neuron(self, feature):
+        """
+        Finds fittest neuron w.r.t. given input features x and model
 
-        #Initialize properties
-        self._x = x
-        self._y = y
-        self._learning_rate = float(learning_rate)
-        self._radius = float(radius)
-        self._num_iter = num_iter
-        self._graph = tf.Graph()
+        :return: the neuron and its index in model.
+        """
+        # calculate the distance between each neuron and the input using vectorized operation
+        distance = np.sqrt(np.sum((self.model - feature) ** 2, axis=2))
+        pos = np.unravel_index(np.argmin(distance, axis=None), distance.shape)
+        return (self.model[pos], pos)
 
-        #Initialize graph
-        with self._graph.as_default():
+    # Cooperation
+    def decay_radius(self, i):
+        return self.init_radius * np.exp(-i / self.time_constant)
 
-            #Initializing variables and placeholders
-            self._weights = tf.Variable(tf.random.normal([x*y, input_dim]))
-            self._locations = self._generate_index_matrix(x, y)
-            self._input = keras.Input(dtype="float", shape=[input_dim,])
-            self._iter_input = keras.Input(dtype="float", shape=[None,])
+    def decay_learning_rate(self, i):
+        return self.learning_rate * np.exp(-i / self.iterations)
 
-            #Calculating BMU
-            input_matix = tf.stack([self._input for i in range(x*y)])
-            distances = tf.sqrt(tf.reduce_sum(
-                tf.pow(tf.subtract(self._weights, input_matix), 2), 1))
-            bmu = tf.argmin(distances, 0)
+    # gaussian neighboring
+    def h(self, distance, radius):
+        return np.exp(-distance / (2 * (radius**2)))
 
-            #Get BMU location
-            mask = tf.pad(tf.reshape(bmu, [1]), np.array([[0, 1]]))
-            size = tf.cast(tf.constant(np.array([1, 2])), dtype=tf.int64)
-            bmu_location = tf.reshape(
-                tf.slice(self._locations, mask, size), [2])
+    # Adaption
+    def train(self, x_train):
+        zx = np.arange(0, self.net_dim[0], 1)
+        zy = np.arange(0, self.net_dim[1], 1)
+        zx, zy = np.meshgrid(zx, zy, indexing='ij')
+        mesh_init = np.array([zx, zy])
 
-            #Calculate learning rate and radius
-            decay_function = tf.subtract(
-                1.0, tf.math.divide(self._iter_input, self._num_iter))
-            _current_learning_rate = tf.multiply(
-                self._learning_rate, decay_function)
-            _current_radius = tf.multiply(self._radius, decay_function)
+        for i in range(self.iterations):
+            # sample = x_train[np.random.randint(0, n, 1)]
+            for feature in x_train:
 
-            #Adapt learning rate to each neuron based on position
-            bmu_matrix = tf.stack([bmu_location for i in range(x*y)])
-            bmu_distance = tf.reduce_sum(
-                tf.pow(tf.subtract(self._locations, bmu_matrix), 2), 1)
-            neighbourhood_func = tf.exp(tf.negative(
-                tf.math.divide(tf.cast(bmu_distance, "float32"), tf.pow(_current_radius, 2))))
-            learning_rate_matrix = tf.multiply(
-                _current_learning_rate, neighbourhood_func)
+                # find the fittest
+                fittest, fittest_idx = self.fittest_neuron(feature)
 
-            #Update all the weights
-            multiplytiplier = tf.stack([tf.tile(tf.slice(
-                learning_rate_matrix, np.array([i]), np.array([1])), [input_dim])
-                for i in range(x*y)])
-            delta = tf.multiply(
-                multiplytiplier,
-                tf.subtract(tf.stack([self._input for i in range(x*y)]), self._weights))
+                # decay the SOM parameters
+                r = self.decay_radius(i)
+                l = self.decay_learning_rate(i)
 
-            new_weights = tf.add(self._weights, delta)
-            self._training = tf.assign(self._weights, new_weights)
+                # update weight vector
+                mesh_init[0] = mesh_init[0] - fittest_idx[0]
+                mesh_init[1] = mesh_init[1] - fittest_idx[1]
+                mesh = np.sqrt(np.sum(mesh_init ** 2, axis=0))
+                neighbor_mask = mesh < r
+                if len(neighbor_mask.flatten()) > 0:
+                    mesh[neighbor_mask] = self.h(mesh[neighbor_mask], r)
+                    self.model[neighbor_mask] = self.model[neighbor_mask] + l * np.multiply(
+                        mesh[neighbor_mask][:, np.newaxis], (feature - self.model)[neighbor_mask])
 
-            #Initilize session and run it
-            self._sess = tf.Session()
-            initialization = tf.global_variables_initializer()
-            self._sess.run(initialization)
+    def error(self, x):
+        distances = np.empty((x.shape[0],))
+        for idx, feature in enumerate(x):
+            fittest, fittest_idx = self.fittest_neuron(feature)
+            distances[idx] = ((fittest - feature) ** 2).sum()
+        return distances.mean()
 
-    def train(self, input_vects):
-        for iter_no in range(self._num_iter):
-            for input_vect in input_vects:
-                self._sess.run(self._training,
-                               feed_dict={self._input: input_vect,
-                                          self._iter_input: iter_no})
+    def label_neurons(self, x_train, y_train):
+        # majority vote on reiterating train data and labeling winner node
+        for idx, feature in enumerate(x_train):
+            distance = np.sqrt(np.sum((self.model - feature) ** 2, axis=2))
+            pos = np.unravel_index(
+                np.argmin(distance, axis=None), distance.shape)
+            self.labels[pos[0], pos[1], y_train[idx]] += 1
+        self.labels = np.argmax(self.labels, axis=2)
+        return self.labels
 
-        self._centroid_matrix = [[] for i in range(self._x)]
-        self._weights_list = list(self._sess.run(self._weights))
-        self._locations = list(self._sess.run(self._locations))
-        for i, loc in enumerate(self._locations):
-            self._centroid_matrix[loc[0]].append(self._weights_list[i])
+    def accuracy(self, x_test, y_test):
+        t = 0
+        for idx, feature in enumerate(x_test):
+            distance = np.sqrt(np.sum((self.model - feature) ** 2, axis=2))
+            pos = np.unravel_index(
+                np.argmin(distance, axis=None), distance.shape)
+            if self.labels[pos[0], pos[1]] == y_test[idx]:
+                t += 1
+        return t / len(y_test)
 
-    def map_input(self, input_vectors):
-        return_value = []
-        for vect in input_vectors:
-            min_index = min([i for i in range(len(self._weights_list))],
-                            key=lambda x: np.linalg.norm(vect - self._weights_list[x]))
-            return_value.append(self._locations[min_index])
-        return return_value
-
-    def _generate_index_matrix(self, x, y):
-        return tf.constant(np.array(list(self._iterator(x, y))))
-
-    def _iterator(self, x, y):
-        for i in range(x):
-            for j in range(y):
-                yield np.array([i, j])
+    def visualize_map(self, x_test, y_test):
+        wmap = {}
+        im = 0
+        for x, t in zip(x_test[:1000], y_test[:1000]):
+            distance = np.sqrt(np.sum((self.model - x) ** 2, axis=2))
+            pos = np.unravel_index(
+                np.argmin(distance, axis=None), distance.shape)
+            wmap[pos] = im
+            plt.text(pos[0],  pos[1],  str(t), color=plt.cm.rainbow(
+                t / 10.), fontdict={'weight': 'bold',  'size': 11})
+            im = im + 1
+        plt.axis([0, self.model.shape[0], 0,  self.model.shape[1]])
+        plt.show()
