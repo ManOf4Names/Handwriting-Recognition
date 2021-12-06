@@ -1,7 +1,7 @@
 import matplotlib.pylab as plt
 import numpy as np
 import gzip
-from sklearn.model_selection import trin_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import scale
 import cv2
 
