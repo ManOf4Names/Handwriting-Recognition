@@ -1,0 +1,17 @@
+In order to run all of the necessary code, the following packages must be installed:
+    TensorFlow 2
+    Numpy
+    MatPlotLib
+
+The Convolutional Neural Network implementation can be found in "convolutionalNN.py".
+The current version of the SOM implementation can be found in "kohonenSOM.py".
+"som.py" is a standalone object file that is imported by "kohonenSOM.py" to train the SOM.
+
+You can retrieve the preprocessed dataset from the followning Google Drive Link
+    https://drive.google.com/file/d/1gdI-MXdN-KoPqO2U5HjxGnCbLRN0MKNQ/view?usp=sharing
+
+The following file structure should be used in the home directory of the project
+to ensure the dataset is read by the program correctly.
+    CharacterSets
+        > Operating
+        > Training

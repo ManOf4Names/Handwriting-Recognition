@@ -1,12 +1,10 @@
 # Batch of imports
 import numpy as np
 import tensorflow as tf
-
-from tensorflow import keras
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from som import Kohonen
 
 
+# Translation from and RGB tensor to a binary numpy array.
 def condense_color(tensor):
     vect = np.array([])
     for i in tensor:
@@ -18,7 +16,7 @@ def condense_color(tensor):
                 vect = np.append(vect, int(1))
     return vect
 
-
+# Translation from a multi-dimensional tensor to a 1d binary numpy array
 def condense_gray(tensor):
     threshold = 0.5
     l = tensor.numpy().shape[0]
@@ -27,7 +25,7 @@ def condense_gray(tensor):
     # imgPrint(vect, l, w)
     return vect
 
-
+# Used to visualize an image given its 1d array.
 def imgPrint(a, l, w):
     for i in range(l):
         line = ""
@@ -62,15 +60,14 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
     image_size=(img_height, img_width),
     batch_size=batch_size)
 
-# Normalization layer. first_image can be viewed as a numpy array, but currently consists of all 1s for some reason.
+# Normalization layer. Used to generate testing and training data later.
 normalization_layer = tf.keras.layers.Rescaling(1./255)
 normalized_train = train_ds.map(lambda x, y: (normalization_layer(x), y))
 normalized_valid = val_ds.map(lambda x, y: (normalization_layer(x), y))
 image_batch_t, labels_batch_t = next(iter(normalized_train))
 image_batch_v, labels_batch_v = next(iter(normalized_valid))
 
-# Notice the pixel values are now in `[0,1]`.
-# print(np.min(first_image), np.max(first_image))
+# Generating the 1d vectors for the training and validation datasets
 trainSet = np.array([])
 validSet = np.array([])
 for i in range(len(image_batch_t)):
@@ -78,9 +75,11 @@ for i in range(len(image_batch_t)):
     validSet = np.append(trainSet, condense_gray(image_batch_v[i]))
 trainSet = trainSet.reshape(-1, 2500)
 
+# Building and training the SOM model
 som = Kohonen(2500, 100, net_dim=(50, 50), n_classes=62)
 som.train(trainSet)
 
+# Generating label lists for the training and validation sets.
 labelsValid = []
 labelsTrain = []
 for i in labels_batch_v:

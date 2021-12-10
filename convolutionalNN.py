@@ -1,13 +1,5 @@
 import numpy as np
-import os
-import PIL
 import tensorflow as tf
-
-from tensorflow import keras
-from tensorflow.keras.preprocessing.image import ImageDataGenerator 
-
-
-from som import SOM
 
 #checks if the directory for our dataset exists,
 #if not os.path.exists("DS"):
@@ -26,7 +18,7 @@ train_ds = tf.keras.utils.image_dataset_from_directory(
   subset="training",
   seed=123,
   image_size=(img_height, img_width),
-  batch_size=batch_size) #WTF does batch size affect????
+  batch_size=batch_size)
 
 val_ds = tf.keras.utils.image_dataset_from_directory(
   input_dir,
@@ -37,37 +29,6 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
   seed=123,
   image_size=(img_height, img_width),
   batch_size=batch_size)
-
-#prints the class names (so we know our dataset is being read)
-'''class_names = train_ds.class_names
-print(class_names)'''
-
-'''Shuffles the training dataset for each epoch
-#currently
-image_count = len(list(train_ds))
-print(image_count)
-train_ds = train_ds.shuffle(image_count, reshuffle_each_iteration=True)'''
-
-
-
-
-
-
-
-'''#THIS CODE IS JUST FOR VISUALIZATION, IT CAN BE SAFELY REMOVED
-import matplotlib.pyplot as plt
-
-
-plt.figure(figsize=(10, 10))
-for images, labels in train_ds.take(1):
-  for i in range(9):
-    ax = plt.subplot(3, 3, i + 1)
-    plt.imshow(images[i].numpy().astype("uint8"))
-    plt.title(class_names[labels[i]])
-    plt.axis("off")
-plt.show()
-#END OF VISUALIZATION CODE
-'''
 
 normalization_layer = tf.keras.layers.Rescaling(1./255)
 
